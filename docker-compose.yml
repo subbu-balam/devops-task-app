@@ -1,0 +1,76 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: taskapp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: taskapp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecret123
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+    container_name: taskapp-auth
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      PORT: 5001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskapp
+      DB_USER: postgres
+      DB_PASSWORD: mysecret123
+      JWT_SECRET: supersecretkey
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./services/auth-service:/app
+      - /app/node_modules
+
+  task-service:
+    build:
+      context: ./services/task-service
+    container_name: taskapp-task
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      PORT: 5002
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskapp
+      DB_USER: postgres
+      DB_PASSWORD: mysecret123
+      JWT_SECRET: supersecretkey
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./services/task-service:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: taskapp-frontend
+    restart: unless-stopped
+    depends_on:
+      - auth-service
+      - task-service
+    environment:
+      VITE_AUTH_API_URL: http://localhost:5001
+      VITE_TASK_API_URL: http://localhost:5002
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:

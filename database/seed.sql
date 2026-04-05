@@ -1,0 +1,2 @@
+-- Create a demo user only if you want manual testing.
+-- Password is not seeded here because the app hashes passwords during registration.
