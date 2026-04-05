@@ -1,0 +1,102 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  frontend:
+    name: Frontend Build Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build frontend
+        run: npm run build
+
+  auth-service:
+    name: Auth Service Dependency Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: services/auth-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: services/auth-service/package-lock.json
+
+      - name: Install auth-service dependencies
+        run: npm install
+
+  task-service:
+    name: Task Service Dependency Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: services/task-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: services/task-service/package-lock.json
+
+      - name: Install task-service dependencies
+        run: npm install
+
+  docker:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+    needs:
+      - frontend
+      - auth-service
+      - task-service
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build auth-service image
+        run: docker build -t auth-service ./services/auth-service
+
+      - name: Build task-service image
+        run: docker build -t task-service ./services/task-service
+
+      - name: Build frontend image
+        run: docker build -t frontend ./frontend
